@@ -316,6 +316,40 @@ def create_sidebar():
         (bearing_data['Name'] == selected_model)
     ].iloc[0]
     # Affichage des fréquences calculées------------------------------------------------------------------------------------
+    # Choix de l'unité d'entrée
+    unit_choice = st.radio(
+        "Unité de fréquence de rotation:",
+        ["Hz", "RPM"],
+        horizontal=True
+                        )
+        
+    # Entrée personnalisée pour la vitesse de rotation
+    if unit_choice == "RPM":
+         rotation_input = st.number_input(
+           "Fréquence de rotation (RPM)",
+           min_value=1.0,
+           max_value=30000.0,
+           value=1000.0,
+           step=1.0
+                        )
+          # Conversion RPM vers Hz
+          custom_hz = rotation_input / 60.0
+          st.info(f"**Fréquence de rotation:** {rotation_input:.1f} RPM = {custom_hz:.2f} Hz")
+    else:
+                      custom_hz = st.number_input(
+                         "Fréquence de rotation (Hz)",
+                         min_value=0.017,  # ~1 RPM
+                         max_value=1000.0,
+                         value=16.67,
+                         step=0.01
+                      )
+                      rotation_rpm = custom_hz * 60.0
+                      st.info(f"**Fréquence de rotation:** {custom_hz:.2f} Hz = {rotation_rpm:.1f} RPM")
+    rotation_speed_hz = custom_hz
+    ftf_freq = selected_bearing['FTF'] * rotation_speed_hz
+    bsf_freq = selected_bearing['BSF'] * rotation_speed_hz
+    bpfo_freq = selected_bearing['BPFO'] * rotation_speed_hz
+    bpfi_freq = selected_bearing['BPFI'] * rotation_speed_hz
     st.sidebar.subheader("Fréquences caractéristiques")
     st.sidebar.write(f"- FTF: {ftf_freq:.2f} Hz")
     st.sidebar.write(f"- BSF: {bsf_freq:.2f} Hz")
