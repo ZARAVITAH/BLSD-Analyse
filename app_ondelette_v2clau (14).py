@@ -927,49 +927,7 @@ def main():
                             #with col2:
                             #    st.plotly_chart(fig_env, use_container_width=True)
                             
-                            # Diagnostic automatique
-                            st.subheader("🔍 Diagnostic Automatisé")
                             
-                            # Trouver le pic dominant dans le spectre de l'enveloppe
-                            main_peak_idx = np.argmax(psd_env[freqs_env <= max_freq/2])
-                            main_peak_freq = freqs_env[main_peak_idx]
-                            main_peak_amp = psd_env[main_peak_idx]
-                            
-                            # Comparaison avec les fréquences caractéristiques
-                            closest_freq = ""
-                            min_diff = float('inf')
-                            for freq_type, freq_val in frequencies.items():
-                                if freq_type in freq_options and freq_options[freq_type]:
-                                    diff = abs(main_peak_freq - freq_val)
-                                    if diff < min_diff:
-                                        min_diff = diff
-                                        closest_freq = freq_type
-                            
-                            # Calcul du pourcentage d'écart
-                            deviation = (min_diff / frequencies[closest_freq] * 100) if frequencies[closest_freq] != 0 else 100
-                            
-                            # Affichage des résultats
-                            if main_peak_amp > np.mean(psd_env) * 5:  # Seuil significatif
-                                if deviation < 5:  # Écart < 5%
-                                    st.success(f"✅ Forte corrélation avec {closest_freq} ({frequencies[closest_freq]:.2f} Hz)")
-                                    st.markdown(f"""
-                                    **Diagnostic:**
-                                    - Fréquence dominante: **{main_peak_freq:.2f} Hz** (écart: {deviation:.1f}%)
-                                    - Type de défaut probable: **{get_fault_type(closest_freq)}**
-                                    - Amplitude relative: **{10*np.log10(main_peak_amp):.1f} dB**
-                                    """)
-                                else:
-                                    st.warning(f"⚠️ Modulation détectée à {main_peak_freq:.2f} Hz (proche de {closest_freq})")
-                            else:
-                                st.info("ℹ️ Aucune modulation significative détectée")
-                            
-                            # Bouton de réinitialisation
-                            if st.button("🔄 Réinitialiser l'analyse", type="secondary"):
-                                keys_to_remove = ['coeffs', 'freqs_cwt', 'wavelet_params', 'last_cwt_time']
-                                for key in keys_to_remove:
-                                    if key in st.session_state:
-                                        del st.session_state[key]
-                                st.rerun()
                                 
                         except Exception as e:
                             st.error(f"❌ Erreur dans l'analyse par ondelettes: {str(e)}")
