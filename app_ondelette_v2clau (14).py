@@ -587,11 +587,11 @@ def main():
                     
                     show_harmonics = st.checkbox("Afficher les harmoniques des fréquences caractéristiques", False)
                     if show_harmonics:
-                        harmonics_count = st.slider("Nombre d'harmoniques à afficher", 1, 5, 3)
+                        harmonics_count = st.slider("Nombre d'harmoniques à afficher", 1, 10, 3)
                     
                     show_speed_harmonics = st.checkbox("Afficher les harmoniques de vitesse", False)
                     if show_speed_harmonics:
-                        speed_harmonics_count = st.slider("Nombre d'harmoniques de vitesse", 1, 5, 3)
+                        speed_harmonics_count = st.slider("Nombre d'harmoniques de vitesse", 1, 10, 3)
                         speed_harmonics_color = st.color_picker("Couleur des harmoniques de vitesse", "#FFA500")
                     
                     ########################################################################
@@ -920,7 +920,11 @@ def main():
                                 xaxis_title='Fréquence (Hz)',
                                 yaxis_title='Amplitude',
                                 height=400,
-                                xaxis_range=[0, max_freq/2]
+                                xaxis_range=[0, max_freq/2],
+                                yaxis=dict(
+                                   range=[0, 1.1 * np.max(fft_magnitude[freqs_envelope > 0.01])],  # Ignore les très basses fréquences---------------------
+                                   autorange=False
+                                   )
                             )
                             
                             # Affichage des graphiques
