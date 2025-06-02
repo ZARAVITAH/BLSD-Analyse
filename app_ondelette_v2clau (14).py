@@ -315,6 +315,12 @@ def create_sidebar():
         (bearing_data['Manufacturer'] == selected_manufacturer) & 
         (bearing_data['Name'] == selected_model)
     ].iloc[0]
+    # Affichage des fréquences calculées------------------------------------------------------------------------------------
+    st.sidebar.subheader("Fréquences caractéristiques")
+    st.sidebar.write(f"- FTF: {ftf_freq:.2f} Hz")
+    st.sidebar.write(f"- BSF: {bsf_freq:.2f} Hz")
+    st.sidebar.write(f"- BPFO: {bpfo_freq:.2f} Hz")
+    st.sidebar.write(f"- BPFI: {bpfi_freq:.2f} Hz")
     
     roller_count = selected_bearing['Number of Rollers']
     st.sidebar.success(f"**Rouleaux:** {roller_count}")
