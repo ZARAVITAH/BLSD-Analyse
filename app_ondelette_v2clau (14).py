@@ -721,44 +721,82 @@ def main():
             with tab4:
                 st.subheader("🌊 Analyse par Ondelettes")
                 
-                if st.button("🚀 Lancer l'Analyse CWT", type="primary"):
+                # Section de configuration
+                with st.expander("⚙️ Paramètres avancés", expanded=False):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        wavelet_type = st.selectbox(
+                            "Type d'ondelette",
+                            ['morl', 'cmor', 'cgau', 'gaus', 'mexh'],
+                            index=0,
+                            key='wavelet_type'
+                        )
+                    with col2:
+                        scale_step = st.number_input(
+                            "Pas d'échelle",
+                            min_value=1,
+                            max_value=10,
+                            value=2,
+                            key='scale_step'
+                        )
+                
+                # Bouton de lancement principal
+                run_cwt = st.button("🚀 Lancer l'Analyse CWT", type="primary", key='run_cwt')
+                
+                if run_cwt or 'coeffs' in st.session_state:
                     with st.spinner("Calcul en cours..."):
                         try:
-                            # Calcul de la CWT
-                            scales = np.arange(
-                                wavelet_params['scale_min'], 
-                                wavelet_params['scale_max'], 
-                                wavelet_params['scale_step']
-                            )
-                            display_opts = {
-                              'FTF': show_ftf,
-                              'BSF': show_bsf,
-                              'BPFO': show_bpfo,
-                              'BPFI': show_bpfi,
-                              'harmonics': show_harmonics,
-                              'harmonics_count': harmonics_count,
-                              'show_speed_harmonics': show_speed_harmonics,
-                              'speed_harmonics_count': speed_harmonics_count,
-                              'speed_harmonics_color': speed_harmonics_color
+                            # Vérifier si on doit recalculer la CWT
+                            current_params = {
+                                'type': wavelet_type,
+                                'scale_min': wavelet_params['scale_min'],
+                                'scale_max': wavelet_params['scale_max'],
+                                'scale_step': scale_step
                             }
-                            coeffs, freqs_cwt = pywt.cwt(
-                                signal_processed, 
-                                scales, 
-                                wavelet_params['type'], 
-                                sampling_period=1/fs
+                            
+                            recalculate = (
+                                run_cwt or 
+                                'wavelet_params' not in st.session_state or
+                                st.session_state.get('wavelet_params') != current_params
                             )
                             
-                            # Création du scalogramme amélioré
-                            fig_cwt = go.Figure()
+                            if recalculate:
+                                scales = np.arange(
+                                    wavelet_params['scale_min'], 
+                                    wavelet_params['scale_max'], 
+                                    scale_step
+                                )
+                                
+                                coeffs, freqs_cwt = pywt.cwt(
+                                    signal_processed, 
+                                    scales, 
+                                    wavelet_type, 
+                                    sampling_period=1/fs
+                                )
+                                
+                                # Stocker les résultats dans session_state
+                                st.session_state.update({
+                                    'coeffs': coeffs,
+                                    'freqs_cwt': freqs_cwt,
+                                    'wavelet_params': current_params,
+                                    'last_cwt_time': time
+                                })
+                            else:
+                                # Récupérer les résultats depuis session_state
+                                coeffs = st.session_state['coeffs']
+                                freqs_cwt = st.session_state['freqs_cwt']
+                                time = st.session_state['last_cwt_time']
                             
-                            # Scalogramme principal
+                            # Création du scalogramme
+                            fig_cwt = go.Figure()
                             fig_cwt.add_trace(go.Heatmap(
-                                z=20*np.log10(np.abs(coeffs) + 1e-12),  # En dB
+                                z=20*np.log10(np.abs(coeffs) + 1e-12),
                                 x=time,
                                 y=freqs_cwt,
                                 colorscale='Jet',
                                 colorbar=dict(title="Amplitude (dB)"),
-                                hoverongaps=False
+                                hoverongaps=False,
+                                hovertemplate='Temps: %{x:.3f}s<br>Fréquence: %{y:.1f}Hz<br>Amplitude: %{z:.2f}dB<extra></extra>'
                             ))
                             
                             # Ajout des fréquences caractéristiques
@@ -766,7 +804,7 @@ def main():
                                 'FTF': 'violet', 'BSF': 'green', 
                                 'BPFO': 'blue', 'BPFI': 'red'
                             }
-                            #---------------------------------------------------------------------
+                            
                             freq_options = {
                                 'FTF': show_ftf,
                                 'BSF': show_bsf,
@@ -777,200 +815,165 @@ def main():
                             for freq_type, show in freq_options.items():
                                 if show and freq_type in frequencies:
                                     freq_val = frequencies[freq_type]
-                                    
-                                    # Ligne principale
                                     fig_cwt.add_hline(
                                         y=freq_val,
                                         line=dict(color=freq_colors[freq_type], width=2, dash='dot'),
                                         annotation_text=freq_type,
                                         annotation_position="right"
                                     )
-                            #---------------------------------------------------------------------
-                            
-                            for freq_type, show in display_opts.items():
-                                if freq_type in frequencies and show:
-                                    freq_val = frequencies[freq_type]
-                                    
-                                    # Ligne principale
-                                    fig_cwt.add_hline(
-                                        y=freq_val,
-                                        line=dict(color=freq_colors[freq_type], width=2, dash='dot'),
-                                        annotation_text=freq_type,
-                                        annotation_position="right"
-                                    )
-                                    
-                                    # Harmoniques
-                                    if display_opts.get('harmonics', False):
-                                        for h in range(2, display_opts.get('harmonics_count', 3) + 1):
-                                            fig_cwt.add_hline(
-                                                y=freq_val * h,
-                                                line=dict(color=freq_colors[freq_type], width=1, dash='dot'),
-                                                annotation_text=f"{h}×{freq_type}",
-                                                annotation_position="right"
-                                            )
                             
                             fig_cwt.update_layout(
                                 title="Scalogramme - Transformée en Ondelettes Continue",
                                 xaxis_title="Temps (s)",
                                 yaxis_title="Fréquence (Hz)",
                                 height=600,
-                                yaxis_type='log' if st.checkbox("Échelle log") else 'linear'
+                                yaxis_type='log' if st.checkbox("Échelle logarithmique", key='log_scale') else 'linear'
                             )
                             
                             st.plotly_chart(fig_cwt, use_container_width=True)
-                                            # Affichage du scalogramme amélioré
                             
-                            
-                            ########################################################################
-                            # NOUVELLE SECTION: ANALYSE À FRÉQUENCE SPÉCIFIQUE
-                            ########################################################################
+                            # Section d'analyse à fréquence spécifique
                             st.subheader("🎯 Analyse à Fréquence Spécifique")
                             
-                            # Sélection de la fréquence d'analyse
+                            # Sélection de la fréquence avec valeur par défaut intelligente
                             min_freq = float(np.min(freqs_cwt))
                             max_freq = float(np.max(freqs_cwt))
-                                
-                            # Valeur par défaut intelligente
                             default_freq = frequencies.get('BPFO', min_freq + (max_freq - min_freq)/3)
-                                
-                            selected_freq = st.slider(
-                                    "Sélectionnez une fréquence pour l'analyse (Hz)",
-                                    min_value=min_freq,
-                                    max_value=max_freq,
-                                    value=default_freq,
-                                    step=0.1,
-                                    format="%.1f"
-                                )
-                                
-                            # Trouver l'index le plus proche de la fréquence sélectionnée
-                            idx_freq = np.abs(freqs_cwt - selected_freq).argmin()
-                            coeffs_at_freq = coeffs[idx_freq, :]
-                                
-                            # Graphique des coefficients à cette fréquence
-                            fig_freq = go.Figure()
-                            fig_freq.add_trace(go.Scatter(
-                                    x=time,
-                                    y=np.abs(coeffs_at_freq),
-                                    mode='lines',
-                                    name=f'Fréquence {freqs_cwt[idx_freq]:.1f} Hz',
-                                    line=dict(width=2),
-                                    hovertemplate='Temps: %{x:.3f} s<br>Amplitude: %{y:.2f}<extra></extra>'
-                                ))
-                            # Ajouter les lignes verticales pour les fréquences caractéristiques
-                            for freq_type, freq_val in frequencies.items():
-                                if freq_val < max_freq and freq_val > min_freq:
-                                    fig_freq.add_vline(
-                                        x=freq_val,
-                                        line_dash="dash",
-                                        line_color=freq_colors.get(freq_type, 'gray'),
-                                        annotation_text=freq_type,
-                                        annotation_position="top"
-                                    )
                             
-                            fig_freq.update_layout(
-                                title=f'Coefficients d\'ondelettes à {freqs_cwt[idx_freq]:.1f} Hz',
+                            selected_freq = st.slider(
+                                "Sélectionnez une fréquence pour l'analyse (Hz)",
+                                min_value=min_freq,
+                                max_value=max_freq,
+                                value=default_freq,
+                                step=0.1,
+                                format="%.1f",
+                                key='freq_slider'
+                            )
+                            
+                            # Trouver l'index le plus proche
+                            idx_freq = np.abs(freqs_cwt - selected_freq).argmin()
+                            actual_freq = freqs_cwt[idx_freq]
+                            coeffs_at_freq = coeffs[idx_freq, :]
+                            
+                            # Graphique temporel
+                            fig_time = go.Figure()
+                            fig_time.add_trace(go.Scatter(
+                                x=time,
+                                y=np.abs(coeffs_at_freq),
+                                mode='lines',
+                                name=f'{actual_freq:.1f} Hz',
+                                line=dict(width=2, color='royalblue'),
+                                hovertemplate='Temps: %{x:.3f}s<br>Amplitude: %{y:.2f}<extra></extra>'
+                            ))
+                            
+                            # Détection des pics
+                            peaks, _ = detect_peaks_auto(np.abs(coeffs_at_freq), time)
+                            if len(peaks) > 0:
+                                fig_time.add_trace(go.Scatter(
+                                    x=time[peaks],
+                                    y=np.abs(coeffs_at_freq)[peaks],
+                                    mode='markers',
+                                    name='Pics',
+                                    marker=dict(size=8, color='red', symbol='triangle-up')
+                                ))
+                            
+                            fig_time.update_layout(
+                                title=f'Évolution temporelle à {actual_freq:.1f} Hz',
                                 xaxis_title='Temps (s)',
                                 yaxis_title='Amplitude',
                                 height=400
                             )
                             
-                            st.plotly_chart(fig_freq, use_container_width=True)
-                            ########################################################################
-                            # ANALYSE DE L'ENVELOPPE
-                            ########################################################################
-                            st.subheader("📊 Analyse de l'Enveloppe du Signal")
-                            
-                            # Calcul de l'enveloppe du signal à cette fréquence
+                            # Analyse spectrale de l'enveloppe
                             envelope = np.abs(coeffs_at_freq)
+                            freqs_env, psd_env = welch(envelope, fs, nperseg=min(1024, len(envelope)//2))
                             
-                            # FFT de l'enveloppe pour détecter les fréquences de modulation
-                            n = len(envelope)
-                            fft_envelope = np.fft.fft(envelope)
-                            freqs_envelope = np.fft.fftfreq(n, d=1/fs)[:n//2]
-                            fft_magnitude = 2.0/n * np.abs(fft_envelope[0:n//2])
-                            
-                            # Graphique de la FFT de l'enveloppe
-                            fig_envelope_fft = go.Figure()
-                            fig_envelope_fft.add_trace(go.Scatter(
-                                x=freqs_envelope,
-                                y=fft_magnitude,
+                            fig_env = go.Figure()
+                            fig_env.add_trace(go.Scatter(
+                                x=freqs_env,
+                                y=10*np.log10(psd_env + 1e-12),
                                 mode='lines',
-                                name='FFT de l\'enveloppe',
-                                line=dict(width=2),
-                                hovertemplate='Fréquence: %{x:.1f} Hz<br>Amplitude: %{y:.2f}<extra></extra>'
+                                name='PSD',
+                                line=dict(width=2, color='darkorange')
                             ))
                             
-                            # Ajouter les fréquences caractéristiques
-                            for freq_type, freq_val in frequencies.items():
-                                if freq_val < max(freqs_envelope) and freq_val > min(freqs_envelope):
-                                    fig_envelope_fft.add_vline(
+                            # Ajout des fréquences caractéristiques
+                            for freq_type, show in freq_options.items():
+                                if show and freq_type in frequencies:
+                                    freq_val = frequencies[freq_type]
+                                    fig_env.add_vline(
                                         x=freq_val,
-                                        line_dash="dash",
-                                        line_color=freq_colors.get(freq_type, 'gray'),
+                                        line=dict(color=freq_colors[freq_type], width=1.5, dash='dash'),
                                         annotation_text=freq_type,
                                         annotation_position="top"
                                     )
                             
-                            # Ajouter les harmoniques de vitesse
-                            if show_speed_harmonics:
-                                for h in range(1, speed_harmonics_count + 1):
-                                    harmonic_freq = h * custom_hz
-                                    fig_envelope_fft.add_vline(
-                                        x=harmonic_freq,
-                                        line_dash="dash",
-                                        line_color=speed_harmonics_color,
-                                        annotation_text=f"{h}×Vit. Rot.",
-                                        annotation_position="bottom"
-                                    )
-                            
-                            fig_envelope_fft.update_layout(
-                                title='FFT de l\'enveloppe du signal à la fréquence sélectionnée',
+                            fig_env.update_layout(
+                                title='Spectre de l\'enveloppe',
                                 xaxis_title='Fréquence (Hz)',
-                                yaxis_title='Amplitude',
-                                height=400
+                                yaxis_title='PSD (dB/Hz)',
+                                height=400,
+                                xaxis_range=[0, max_freq/2]
                             )
                             
-                            st.plotly_chart(fig_envelope_fft, use_container_width=True)
+                            # Affichage des graphiques
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.plotly_chart(fig_time, use_container_width=True)
+                            with col2:
+                                st.plotly_chart(fig_env, use_container_width=True)
                             
-                            ########################################################################
-                            # INTERPRÉTATION DES RÉSULTATS
-                            ########################################################################
-                            st.subheader("🔍 Interprétation des Résultats")
+                            # Diagnostic automatique
+                            st.subheader("🔍 Diagnostic Automatisé")
                             
-                            # Trouver le pic principal dans la FFT de l'enveloppe
-                            main_peak_idx = np.argmax(fft_magnitude)
-                            main_peak_freq = freqs_envelope[main_peak_idx]
-                            main_peak_amp = fft_magnitude[main_peak_idx]
+                            # Trouver le pic dominant dans le spectre de l'enveloppe
+                            main_peak_idx = np.argmax(psd_env[freqs_env <= max_freq/2])
+                            main_peak_freq = freqs_env[main_peak_idx]
+                            main_peak_amp = psd_env[main_peak_idx]
                             
-                            # Comparer avec les fréquences caractéristiques
+                            # Comparaison avec les fréquences caractéristiques
                             closest_freq = ""
                             min_diff = float('inf')
                             for freq_type, freq_val in frequencies.items():
-                                diff = abs(main_peak_freq - freq_val)
-                                if diff < min_diff:
-                                    min_diff = diff
-                                    closest_freq = freq_type
+                                if freq_type in freq_options and freq_options[freq_type]:
+                                    diff = abs(main_peak_freq - freq_val)
+                                    if diff < min_diff:
+                                        min_diff = diff
+                                        closest_freq = freq_type
                             
-                            # Calculer le pourcentage d'écart
-                            deviation = min_diff / frequencies[closest_freq] * 100 if frequencies[closest_freq] != 0 else 100
+                            # Calcul du pourcentage d'écart
+                            deviation = (min_diff / frequencies[closest_freq] * 100) if frequencies[closest_freq] != 0 else 100
                             
-                            # Afficher les conclusions
-                            if main_peak_amp > np.mean(fft_magnitude) * 5:  # Seuil d'amplitude significative
-                                if deviation < 5:  # Écart de moins de 5%
-                                    st.success(f"✅ Forte corrélation détectée avec la fréquence {closest_freq} ({frequencies[closest_freq]:.2f} Hz)")
+                            # Affichage des résultats
+                            if main_peak_amp > np.mean(psd_env) * 5:  # Seuil significatif
+                                if deviation < 5:  # Écart < 5%
+                                    st.success(f"✅ Forte corrélation avec {closest_freq} ({frequencies[closest_freq]:.2f} Hz)")
                                     st.markdown(f"""
-                                    **Diagnostic préliminaire:**
-                                    - Modulation détectée à **{main_peak_freq:.2f} Hz** (écart: {deviation:.1f}%)
-                                    - Correspond à la fréquence caractéristique **{closest_freq}**
-                                    - Suggère un défaut de type **{get_fault_type(closest_freq)}**
+                                    **Diagnostic:**
+                                    - Fréquence dominante: **{main_peak_freq:.2f} Hz** (écart: {deviation:.1f}%)
+                                    - Type de défaut probable: **{get_fault_type(closest_freq)}**
+                                    - Amplitude relative: **{10*np.log10(main_peak_amp):.1f} dB**
                                     """)
                                 else:
-                                    st.warning(f"⚠️ Modulation détectée à {main_peak_freq:.2f} Hz (écart: {deviation:.1f}% avec {closest_freq})")
+                                    st.warning(f"⚠️ Modulation détectée à {main_peak_freq:.2f} Hz (proche de {closest_freq})")
                             else:
-                                st.info("ℹ️ Aucune modulation significative détectée dans la bande de fréquence analysée")
+                                st.info("ℹ️ Aucune modulation significative détectée")
                             
+                            # Bouton de réinitialisation
+                            if st.button("🔄 Réinitialiser l'analyse", type="secondary"):
+                                keys_to_remove = ['coeffs', 'freqs_cwt', 'wavelet_params', 'last_cwt_time']
+                                for key in keys_to_remove:
+                                    if key in st.session_state:
+                                        del st.session_state[key]
+                                st.rerun()
+                                
                         except Exception as e:
-                            st.error(f"❌ TAB4 Erreur lors de l'analyse CWT: {str(e)}")
+                            st.error(f"❌ Erreur dans l'analyse par ondelettes: {str(e)}")
+                            st.error("Veuillez vérifier les paramètres et réessayer")
+                else:
+                    st.info("ℹ️ Cliquez sur 'Lancer l'Analyse CWT' pour commencer")
+                            
+               
             with tab5:
                 st.subheader("📈 Diagnostic Automatisé")
                 
