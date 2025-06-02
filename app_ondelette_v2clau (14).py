@@ -333,8 +333,8 @@ def create_sidebar():
            step=1.0
                         )
           # Conversion RPM vers Hz
-          custom_hz = rotation_input / 60.0
-          st.info(f"**Fréquence de rotation:** {rotation_input:.1f} RPM = {custom_hz:.2f} Hz")
+         custom_hz = rotation_input / 60.0
+         st.info(f"**Fréquence de rotation:** {rotation_input:.1f} RPM = {custom_hz:.2f} Hz")
     else:
                       custom_hz = st.number_input(
                          "Fréquence de rotation (Hz)",
