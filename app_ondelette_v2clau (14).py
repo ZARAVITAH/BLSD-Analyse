@@ -886,14 +886,21 @@ def main():
                             
                             # Analyse spectrale de l'enveloppe
                             envelope = np.abs(coeffs_at_freq)
-                            freqs_env, psd_env = welch(envelope, fs, nperseg=min(1024, len(envelope)//2))
                             
-                            fig_env = go.Figure()
-                            fig_env.add_trace(go.Scatter(
-                                x=freqs_env,
-                                y=10*np.log10(psd_env + 1e-12),
+                            # FFT de l'enveloppe pour détecter les fréquences de modulation
+                            n = len(envelope)
+                            fft_envelope = np.fft.fft(envelope)
+                            freqs_envelope = np.fft.fftfreq(n, d=1/fs)[:n//2]
+                            fft_magnitude = 2.0/n * np.abs(fft_envelope[0:n//2])
+                            
+                            # Graphique de la FFT de l'enveloppe
+                            fig_envelope_fft = go.Figure()
+                            fig_envelope_fft.add_trace(go.Scatter(
+                                x=freqs_envelope,
+                                y=fft_magnitude,
                                 mode='lines',
-                                name='PSD',
+                                name='FFT de l\'enveloppe',
+                                hovertemplate='Fréquence: %{x:.1f} Hz<br>Amplitude: %{y:.2f}<extra></extra>',
                                 line=dict(width=2, color='darkorange')
                             ))
                             
@@ -901,32 +908,24 @@ def main():
                             for freq_type, show in freq_options.items():
                                 if show and freq_type in frequencies:
                                     freq_val = frequencies[freq_type]
-                                    fig_env.add_vline(
+                                    fig_envelope_fft.add_vline(
                                         x=freq_val,
                                         line=dict(color=freq_colors[freq_type], width=1.5, dash='dash'),
                                         annotation_text=freq_type,
                                         annotation_position="top"
                                     )
                             
-                            fig_env.update_layout(
-                                title='Spectre de l\'enveloppe',
+                            fig_envelope_fft.update_layout(
+                                title='FFT de l\'enveloppe du signal à la fréquence sélectionnée',
                                 xaxis_title='Fréquence (Hz)',
-                                yaxis_title='PSD (dB/Hz)',
+                                yaxis_title='Amplitude',
                                 height=400,
                                 xaxis_range=[0, max_freq/2]
                             )
                             
                             # Affichage des graphiques
                             st.plotly_chart(fig_time, use_container_width=True)
-                            st.plotly_chart(fig_env, use_container_width=True)
-                            #---------------------en colonne
-                            
-                            #col1, col2 = st.columns(2)
-                            #with col1:
-                            #    st.plotly_chart(fig_time, use_container_width=True)
-                            #with col2:
-                            #    st.plotly_chart(fig_env, use_container_width=True)
-                            
+                            st.plotly_chart(fig_envelope_fft, use_container_width=True)
                             
                                 
                         except Exception as e:
