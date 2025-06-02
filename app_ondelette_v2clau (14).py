@@ -53,7 +53,7 @@ Cette application effectue une analyse vibratoire complète en utilisant la tran
 - 📊 **Statistiques avancées** du signal
 - 🔍 **Détection automatique de pics**
 - 📈 **Analyse spectrale comparative**
-- ⚙️ **Traitement BLSD**
+- ⚙️ **Traitement BLSD+**
 - 📱 **Interface responsive améliorée**
 - 🪟 **Fenêtrage de Hanning** pour les analyses spectrales
 
