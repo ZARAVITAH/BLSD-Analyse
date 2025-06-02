@@ -917,12 +917,16 @@ def main():
                             )
                             
                             # Affichage des graphiques
+                            st.plotly_chart(fig_time, use_container_width=True)
+                            st.plotly_chart(fig_env, use_container_width=True)
+                            #---------------------en colonne
+                            '''
                             col1, col2 = st.columns(2)
                             with col1:
                                 st.plotly_chart(fig_time, use_container_width=True)
                             with col2:
                                 st.plotly_chart(fig_env, use_container_width=True)
-                            
+                            '''
                             # Diagnostic automatique
                             st.subheader("🔍 Diagnostic Automatisé")
                             
