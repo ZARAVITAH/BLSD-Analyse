@@ -19,7 +19,7 @@ warnings.filterwarnings('ignore')
 
 # Configuration de la page
 st.set_page_config(
-    page_title="Analyse Vibratoire Avancée",
+    page_title="BLSD Plus: Analyse Vibratoire Avancée",
     page_icon="⚙️",
     layout="wide",
     initial_sidebar_state="expanded"
