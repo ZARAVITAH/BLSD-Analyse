@@ -284,14 +284,30 @@ def apply_hanning_window(signal):
     window = get_window('hann', len(signal))
     return signal * window
 
+#def calculate_fft(signal, fs, apply_window=True):
+#    """Calcule la FFT du signal avec option de fenêtrage"""
+#    n = len(signal)
+#    if apply_window:
+#        signal = apply_hanning_window(signal)
+#    yf = np.fft.fft(signal)
+#    xf = np.fft.fftfreq(n, 1/fs)[:n//2]
+#    return xf, 2.0/n * np.abs(yf[0:n//2])
+#-----------------------------------------------------NouvFonction
 def calculate_fft(signal, fs, apply_window=True):
-    """Calcule la FFT du signal avec option de fenêtrage"""
+    """Calcule la FFT avec fenêtrage optionnel (Hanning)."""
+    signal = np.asarray(signal)  # Conversion explicite pour la performance
     n = len(signal)
+    if n == 0:
+        raise ValueError("Le signal ne peut pas être vide.")
+    
     if apply_window:
-        signal = apply_hanning_window(signal)
+        window = np.hanning(n)  # Plus rapide que get_window('hann')
+        signal = signal * window
+    
     yf = np.fft.fft(signal)
     xf = np.fft.fftfreq(n, 1/fs)[:n//2]
     return xf, 2.0/n * np.abs(yf[0:n//2])
+#------------------------------------------------------------------------------------------------Fin de Fonction
 
 # Interface utilisateur améliorée
 def create_sidebar():
