@@ -894,9 +894,10 @@ def main():
                             
                             # FFT de l'enveloppe pour détecter les fréquences de modulation
                             n = len(envelope)
-                            fft_envelope = np.fft.fft(envelope)
-                            freqs_envelope = np.fft.fftfreq(n, d=1/fs)[:n//2]
-                            fft_magnitude = 2.0/n * np.abs(fft_envelope[0:n//2])
+                            #fft_envelope = np.fft.fft(envelope)
+                            #freqs_envelope = np.fft.fftfreq(n, d=1/fs)[:n//2]
+                            #fft_magnitude = 2.0/n * np.abs(fft_envelope[0:n//2])
+                            freqs_envelope, fft_magnitude = calculate_fft(envelope, fs, apply_window=True)
                             
                             # Graphique de la FFT de l'enveloppe
                             fig_envelope_fft = go.Figure()
