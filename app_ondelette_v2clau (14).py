@@ -711,7 +711,7 @@ def main():
                         yaxis=dict(
                                    range=[0, 1.1 * np.max(fft_amp[fft_freq > 0.01])],  # Ignore les très basses fréquences--------------------------------------
                                    autorange=False
-                                   )
+                                   ),
                         height=500
                     )
                     
