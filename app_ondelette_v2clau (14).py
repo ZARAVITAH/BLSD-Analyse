@@ -708,6 +708,10 @@ def main():
                         title="Spectre FFT du Signal Traité (Fenêtre de Hanning)",
                         xaxis_title="Fréquence (Hz)",
                         yaxis_title="Amplitude",
+                        yaxis=dict(
+                                   range=[0, 1.1 * np.max(fft_amp[fft_freq > 0.01])],  # Ignore les très basses fréquences--------------------------------------
+                                   autorange=False
+                                   )
                         height=500
                     )
                     
